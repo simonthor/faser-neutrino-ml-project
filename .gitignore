@@ -8,3 +8,9 @@ __pycache__/
 
 # Jupyter
 .ipynb_checkpoints/
+
+.serena/
+docs/adr/
+CONTEXT.md
+:memory:.ses
+.claude/
