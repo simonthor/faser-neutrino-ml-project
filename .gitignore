@@ -1,0 +1,10 @@
+# Data files are distributed separately, not through git
+data/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
