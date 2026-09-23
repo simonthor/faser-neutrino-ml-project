@@ -36,7 +36,62 @@ Roughly speaking, in the real experiment the background outnumbers the signal ab
 
 ## Getting started
 
-### 1. Install Python and the packages
+### 1. Download the code with git
+
+[git](https://git-scm.com/) keeps track of every change you make to your code, so you can
+always see what you changed and go back to an earlier version. Check whether you already
+have it by running `git --version` in a terminal. If not, install it from
+<https://git-scm.com/downloads>.
+
+Download (**clone**) this repository and move into its folder:
+
+```bash
+git clone https://github.com/simonthor/faser-neutrino-ml-project.git
+cd faser-neutrino-ml-project
+```
+
+Every command below is run from inside this folder.
+
+#### Saving your work: commits
+
+A **commit** is a snapshot of your files that git remembers forever. Make one whenever
+you reach a point worth keeping, for example when a new plot works. It takes three
+steps:
+
+```bash
+git status                           # see which files have changed
+git add explore.ipynb                # choose the files to include in the snapshot
+git commit -m "Plot p_mean for signal and background"   # save it, with a short description
+```
+
+The first time you commit, git asks who you are. Tell it once with:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+Some useful commands for looking back:
+
+```bash
+git log --oneline                    # list your commits, newest first
+git diff                             # show what has changed since the last commit
+```
+
+A commit is only saved on your own computer. To upload your commits to GitHub, so others
+can see them and they are backed up, run `git push`. That needs permission to write to
+the repository: ask Simon to add you as a collaborator, or
+[fork it](https://docs.github.com/en/get-started/quickstart/fork-a-repo) to get your own
+copy on GitHub.
+
+The data files in `data/` are deliberately ignored by git (see `.gitignore`), so you
+cannot commit them by accident. To learn more, the
+[Pro Git book](https://git-scm.com/book/en/v2) is free online; chapter 2 covers
+everything above.
+
+If you are using VSCode or PyCharm, you can also use the built-in git features inside these code editors.
+
+### 2. Install Python and the packages
 
 This project uses [uv](https://docs.astral.sh/uv/), which handles Python versions and
 packages together. Install it with:
@@ -71,12 +126,12 @@ You need to run the `activate` line again in every new terminal. You can tell it
 because your prompt gains a `(.venv)` prefix.
 </details>
 
-### 2. Get the data
+### 3. Get the data
 
 `data/vertices.csv` is about 60 MB and is **not stored in this repository**. 
 Download it from https://cernbox.cern.ch/s/7NNF2rwlMRuJg4y and place it in the `data/` folder.
 
-### 3. Open the notebook
+### 4. Open the notebook
 
 ```bash
 uv run jupyter lab explore.ipynb
