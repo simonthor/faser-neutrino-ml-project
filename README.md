@@ -68,20 +68,20 @@ because your prompt gains a `(.venv)` prefix.
 
 ### 2. Get the data
 
-`data/vertices.csv` is about 43 MB and is **not stored in this repository**. Ask Simon
-for a copy and place it in the `data/` folder.
+`data/vertices.csv` is about 60 MB and is **not stored in this repository**. 
+Download it from https://cernbox.cern.ch/s/7NNF2rwlMRuJg4y and place it in the `data/` folder.
 
 ### 3. Open the notebook
 
 ```bash
-uv run jupyter lab notebooks/01_explore.ipynb
+uv run jupyter lab explore.ipynb
 ```
 
 Run the cells from top to bottom with <kbd>Shift</kbd>+<kbd>Enter</kbd>.
 
 ## The data
 
-One row is one reconstructed vertex. 268,898 rows, 24 columns.
+One row is one reconstructed vertex. 268,898 rows, 33 columns.
 
 | rows | |
 |---|---|
@@ -116,6 +116,15 @@ there is no lepton track and these are the hardest neutrinos to identify.
 | `n_kinks` | count | Tracks with a sudden change of direction — a particle decaying in flight. |
 | `kink_angle_max` | rad | The largest such change of direction. |
 | `e_em_max`, `e_em_sum` | GeV | Energy of the electromagnetic showers. |
+| `dphi_unit` | rad | Angle between the leading track and the other tracks added together, every track counting equally. Near π means back-to-back. |
+| `dphi_p` | rad | The same, but each other track weighted by its momentum (the larger of `Prec_vtrk` and `Prec_par`). |
+| `r90` | count | Other tracks pointing more than 90° away from the leading track. |
+| `a_sum` | — | Length of the sum of all tracks' unit directions: how much the tracks point the same way. |
+| `pt_sum` | GeV | Length of the sum of energy × direction over all tracks: how well the transverse momentum balances. |
+| `n_vtrk_ippos3um` | count | Tracks passing within 3 µm of the vertex. |
+| `n_vtrk_nseg5` | count | Tracks seen in more than 5 films. |
+| `leadtrk_slope` | — | tan θ of the leading track. |
+| `leadtrk_pt` | GeV | Transverse momentum of the leading track, energy × slope. |
 
 ### Caveats
 
@@ -125,18 +134,14 @@ Read these before drawing conclusions.
   exactly one class, because signal and background were simulated separately. A model
   given `weight` will score perfectly and have learned nothing. Use it only for scaling
   histograms to the real experiment.
-- **Some electromagnetic shower data is broken.** In one background sample (anti-neutrons)
-  the shower reconstruction failed for about 70% of tracks, so `e_em_max` and `e_em_sum`
-  are missing far more often there than anywhere else. Treating "missing" as a value of
-  its own would teach a model about the simulation rather than about physics. This is
-  being fixed upstream.
 - **A quarter to a third of tracks have no measured momentum.** Momentum is measured from
   how much a track scatters, which needs a long track. `n_tracks_with_momentum` records
   how many went into `p_mean`. Requiring *every* track to have one would be a mistake:
   it happens far more often in signal than background, so it would leak the answer too.
 - **There are no vertex coordinates.** Signal and background were generated in different
-  volumes, so position would identify the class outright. See
-  [ADR 0001](docs/adr/0001-fiducial-cut-but-drop-coordinates.md).
+  volumes, so position would identify the class outright.
+- **`dphi_p` is missing when no other track has a momentum** — 0.6% of background rows
+  and 1–4% of signal rows.
 - **The two Δφ families use different tracks.** `delta_phi_*` uses every track;
   `delta_phi_p_*` uses only those with a measured momentum, and is missing entirely when
   fewer than two qualify (1.8% of rows).

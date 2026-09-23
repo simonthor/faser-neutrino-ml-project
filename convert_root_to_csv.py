@@ -45,7 +45,7 @@ BRANCHES = [
     "iev_mc", "x_vtx", "y_vtx", "nuint_type", "plate_vtrk",
     "n_vtrk", "n_vtrk_100mrad", "n_vtrk_ip5", "n_vtrk_ip5_100mrad",
     "slope_vtrk", "tx_vtrk", "ty_vtrk", "ip_pos_vtrk",
-    "Prec_vtrk", "Prec_par", "Prec_dau", "npl_vtrk",
+    "Prec_vtrk", "Prec_par", "Prec_dau", "npl_vtrk", "nseg_vtrk",
     "kink_angle", "flag_kink_angle", "E_em",
 ]
 
@@ -98,9 +98,7 @@ def read_tracks(run: int) -> pd.DataFrame:
         )
         tracks[column] = tracks[column].where(usable)
 
-    # E_em and the EMrec_* branches use -999 for "not reconstructed". Run 100094 is
-    # known to be 70% unreconstructed; that is a data problem being fixed upstream, so
-    # the values are treated as correct here and only the sentinel is masked.
+    # E_em uses -999 for "not reconstructed".
     tracks["E_em"] = tracks["E_em"].where(tracks["E_em"] >= 0)
 
     # kink_angle is exactly 0 whenever no kink was found, which is a sentinel rather
@@ -153,9 +151,9 @@ def build_features(tracks: pd.DataFrame, run: int) -> pd.DataFrame:
     # Unweighted delta phi: every track contributes a unit vector, so the angle
     # describes the topology alone and is defined for every track.
     norm = np.hypot(tracks["tx_vtrk"], tracks["ty_vtrk"]).replace(0, np.nan)
-    tracks["delta_phi"] = delta_phi(
-        (tracks["tx_vtrk"] / norm).fillna(0.0), (tracks["ty_vtrk"] / norm).fillna(0.0), keys
-    )
+    tracks["ux"] = (tracks["tx_vtrk"] / norm).fillna(0.0)
+    tracks["uy"] = (tracks["ty_vtrk"] / norm).fillna(0.0)
+    tracks["delta_phi"] = delta_phi(tracks["ux"], tracks["uy"], keys)
 
     # Momentum-weighted delta phi: each track contributes its transverse momentum, so
     # only tracks with a measured momentum take part and the angle is undefined for a
@@ -170,6 +168,42 @@ def build_features(tracks: pd.DataFrame, run: int) -> pd.DataFrame:
     tracks["delta_phi_p"] = tracks["delta_phi_p"].where(
         has_momentum & (has_momentum.groupby(keys).transform("sum") >= 2)
     )
+
+    # Variables from the FASERnu nue/numu CC event selection (Matsukuma, collaboration
+    # meeting 2026-07-15, docs/20260714_Ren_FASERnu_event_selection_FASER_CM.pdf). They
+    # are built around the leading track, the one with the highest EM-shower energy, and
+    # use E_em as the track energy. A vertex with no E_em at all has no leading track.
+    # E_em belongs to a shower cluster, so collinear tracks in the same shower share it
+    # and a third of vertices have a tie for the highest value. The slides do not say
+    # how to break it; here the tied track starting in the most upstream plate wins,
+    # then the one most back-to-back with the rest in (unweighted) delta phi.
+    ux, uy = tracks["ux"], tracks["uy"]
+    ranked = tracks.sort_values(
+        ["E_em", "plate_vtrk", "delta_phi"],
+        ascending=[False, True, False],
+        na_position="last",
+    )
+    is_lead = pd.Series(False, index=tracks.index)
+    is_lead[ranked.index[~ranked.duplicated(["iev_mc", "x_vtx"])]] = True
+    is_lead &= tracks["E_em"].notna()
+    tracks["dphi_unit"] = tracks["delta_phi"].where(is_lead)
+    # dphi_p weights the other tracks by momentum, taking the parent segment's where it
+    # is larger. The leading track's own weight cancels out of the sum of the others, so
+    # it is set to 1 to keep its direction defined even without a measured momentum.
+    # Undefined when none of the other tracks has a momentum.
+    momentum = np.fmax(tracks["Prec_vtrk"], tracks["Prec_par"]).fillna(0.0).where(~is_lead, 1.0)
+    tracks["dphi_p"] = delta_phi(momentum * ux, momentum * uy, keys).where(is_lead)
+    others_with_momentum = (momentum.where(~is_lead, 0.0) > 0).groupby(keys).transform("sum")
+    tracks["dphi_p"] = tracks["dphi_p"].where(others_with_momentum > 0)
+    tracks["leadtrk_slope"] = tracks["slope_vtrk"].where(is_lead)
+    tracks["leadtrk_pt"] = (tracks["E_em"] * tracks["slope_vtrk"]).where(is_lead)
+    lead_ux = ux.where(is_lead).groupby(keys).transform("max")
+    lead_uy = uy.where(is_lead).groupby(keys).transform("max")
+    tracks["opposite_lead"] = (ux * lead_ux + uy * lead_uy) < 0
+    tracks["ex"] = tracks["E_em"] * tracks["tx_vtrk"]
+    tracks["ey"] = tracks["E_em"] * tracks["ty_vtrk"]
+    tracks["ippos3um"] = tracks["ip_pos_vtrk"] < 3
+    tracks["nseg5"] = tracks["nseg_vtrk"] > 5
 
     vertices = tracks.groupby(["iev_mc", "x_vtx"]).agg(
         nuint_type=("nuint_type", "first"),
@@ -196,16 +230,33 @@ def build_features(tracks: pd.DataFrame, run: int) -> pd.DataFrame:
         e_em_max=("E_em", "max"),
         e_em_sum=("E_em", "sum"),
         n_tracks_with_em=("E_em", "count"),
+        dphi_unit=("dphi_unit", "max"),
+        dphi_p=("dphi_p", "max"),
+        r90=("opposite_lead", "sum"),
+        ux_sum=("ux", "sum"),
+        uy_sum=("uy", "sum"),
+        ex_sum=("ex", "sum"),
+        ey_sum=("ey", "sum"),
+        n_vtrk_ippos3um=("ippos3um", "sum"),
+        n_vtrk_nseg5=("nseg5", "sum"),
+        leadtrk_slope=("leadtrk_slope", "max"),
+        leadtrk_pt=("leadtrk_pt", "max"),
     )
 
     # A sum over an all-missing group is 0 in pandas, which would claim a measurement of
     # zero where there is no measurement at all.
     vertices["p_sum"] = vertices["p_sum"].where(vertices["n_tracks_with_momentum"] > 0)
     vertices["e_em_sum"] = vertices["e_em_sum"].where(vertices["n_tracks_with_em"] > 0)
+    vertices["r90"] = vertices["r90"].where(vertices["dphi_unit"].notna())
+    vertices["a_sum"] = np.hypot(vertices["ux_sum"], vertices["uy_sum"])
+    vertices["pt_sum"] = np.hypot(vertices["ex_sum"], vertices["ey_sum"]).where(
+        vertices["n_tracks_with_em"] > 0
+    )
 
     vertices["interaction"] = vertices["nuint_type"].map(interaction_label)
     vertices["weight"] = WEIGHTS[run]
-    return vertices.drop(columns=["nuint_type", "n_tracks_with_em"]).reset_index(drop=True)
+    helpers = ["nuint_type", "n_tracks_with_em", "ux_sum", "uy_sum", "ex_sum", "ey_sum"]
+    return vertices.drop(columns=helpers).reset_index(drop=True)
 
 
 def main() -> None:
