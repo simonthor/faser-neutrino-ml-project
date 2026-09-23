@@ -13,18 +13,23 @@ are scanned and reconstructed in 3D.
 When a neutrino strikes a tungsten nucleus it produces a spray of charged particles
 starting from a single point. That point is a **vertex**; the particles coming out of it
 are the **primary tracks**. Because the neutrino itself is electrically neutral, there is
-no track leading *into* the vertex — it appears out of nowhere.
+no track leading *into* the vertex, it appears out of nowhere.
 
-That last property is the problem. A **neutral hadron** — a neutron, a $\Lambda$, a
-$K^0$ — is also electrically neutral, also leaves no incoming track, and also produces a
+Examples of an electron neutrino interaction (top row, two different views) and a
+muon neutrino interaction (bottom row) are shown below.
+
+![Neutrino interactions](images/neutrino_interactions.png)
+
+That last property is the problem. A **neutral hadron** (a neutron, $\Lambda$, 
+or $K^0$) is also electrically neutral, also leaves no incoming track, and also produces a
 spray of outgoing particles. These are produced in large numbers when muons from the LHC
 interact inside the detector itself. Under a microscope the two look alike.
 
 So every clue must come from the *outgoing* tracks: how many there are, how fast they
 are, how they are arranged in space. That is what this dataset contains.
 
-- **Signal** — a neutrino interaction
-- **Background** — a neutral hadron interaction
+- **Signal**: a neutrino interaction
+- **Background**: a neutral hadron interaction
 
 Roughly speaking, in the real experiment the background outnumbers the signal about
 8 to 1, which is what makes the problem worth solving.
@@ -48,7 +53,7 @@ uv sync
 
 That creates a virtual environment in `.venv/` and installs everything. A **virtual
 environment** is a private copy of Python for this project, so packages you install here
-cannot break anything else on your computer.
+will not break anything else on your computer.
 
 <details>
 <summary>Without uv (plain Python and pip)</summary>
@@ -77,18 +82,20 @@ Download it from https://cernbox.cern.ch/s/7NNF2rwlMRuJg4y and place it in the `
 uv run jupyter lab explore.ipynb
 ```
 
+If you are familiar with code editors, you can also open `explore.ipynb` in VS Code or PyCharm.
+
 Run the cells from top to bottom with <kbd>Shift</kbd>+<kbd>Enter</kbd>.
 
 ## The data
 
-One row is one reconstructed vertex. 268,898 rows, 33 columns.
+One row is one reconstructed vertex. 268 898 rows, 33 columns.
 
 | rows | |
 |---|---|
-| `background` | 162,949 |
-| `numuCC` | 65,375 |
-| `NC` | 22,630 |
-| `nueCC` | 17,356 |
+| `background` | 162 949 |
+| `numuCC` | 65 375 |
+| `NC` | 22 630 |
+| `nueCC` | 17 356 |
 | `nutauCC` | 588 |
 
 `CC` means **charged current**: the neutrino turned into its charged partner (a muon for
@@ -96,24 +103,27 @@ One row is one reconstructed vertex. 268,898 rows, 33 columns.
 **neutral current**: the neutrino bounced off the nucleus and continued invisibly, so
 there is no lepton track and these are the hardest neutrinos to identify.
 
+**The goal is to find all the CC interactions, which are the `numuCC`, `nueCC`, and
+`nutauCC` rows.**
+
 ### Columns
 
 | column | unit | meaning |
 |---|---|---|
 | `interaction` | — | What really happened. The label. |
-| `weight` | — | How many real interactions this one row represents, for 9.5 fb⁻¹ of LHC data. **Never use as a feature** — see below. |
+| `weight` | — | How many real interactions this one row represents, for 9.5 fb⁻¹ of LHC data. **Never use as a feature**, see below. |
 | `n_vtrk` | count | Primary tracks at the vertex. |
 | `n_vtrk_100mrad` | count | Primary tracks within 100 mrad of the beam direction. |
 | `n_vtrk_ip5` | count | Primary tracks passing within 5 µm of the vertex. |
 | `n_vtrk_ip5_100mrad` | count | Both of the above at once. |
-| `slope_mean`, `slope_max`, `slope_std` | — | tan θ of the tracks relative to the beam: mean, largest, and spread. |
+| `slope_mean`, `slope_max`, `slope_std` | — | tanθ of the tracks relative to the beam: mean, largest, and spread. |
 | `delta_phi_mean`, `delta_phi_max` | rad | How back-to-back the vertex is. Every track counts equally. |
 | `delta_phi_p_mean`, `delta_phi_p_max` | rad | The same, but each track weighted by its transverse momentum. |
 | `p_max`, `p_sum`, `p_mean` | GeV | Momentum of the tracks: largest, total, average. |
 | `n_tracks_with_momentum` | count | How many tracks had a measurable momentum. |
 | `npl_max` | count | Films crossed by the longest track. |
 | `ip_pos_mean`, `ip_pos_max` | µm | How close the tracks extrapolate back to the vertex. |
-| `n_kinks` | count | Tracks with a sudden change of direction — a particle decaying in flight. |
+| `n_kinks` | count | Tracks with a sudden change of direction. This is the signature of a particle decaying in flight. |
 | `kink_angle_max` | rad | The largest such change of direction. |
 | `e_em_max`, `e_em_sum` | GeV | Energy of the electromagnetic showers. |
 | `dphi_unit` | rad | Angle between the leading track and the other tracks added together, every track counting equally. Near π means back-to-back. |
@@ -140,7 +150,7 @@ Read these before drawing conclusions.
   it happens far more often in signal than background, so it would leak the answer too.
 - **There are no vertex coordinates.** Signal and background were generated in different
   volumes, so position would identify the class outright.
-- **`dphi_p` is missing when no other track has a momentum** — 0.6% of background rows
+- **`dphi_p` is missing when no other track has a momentum**: 0.6% of background rows
   and 1–4% of signal rows.
 - **The two Δφ families use different tracks.** `delta_phi_*` uses every track;
   `delta_phi_p_*` uses only those with a measured momentum, and is missing entirely when
@@ -152,15 +162,15 @@ Read these before drawing conclusions.
 
 ## Documentation
 
-- **pandas** — tables, `read_csv`, filtering, `groupby`: <https://pandas.pydata.org/docs/>
-  — begin with [10 minutes to pandas](https://pandas.pydata.org/docs/user_guide/10min.html)
-- **NumPy** — arrays and numerical maths: <https://numpy.org/doc/stable/>
-  — begin with [the absolute basics for beginners](https://numpy.org/doc/stable/user/absolute_beginners.html)
-- **Matplotlib** — plotting: <https://matplotlib.org/stable/>
-  — the [pyplot tutorial](https://matplotlib.org/stable/tutorials/pyplot.html) and the
+- **pandas**: tables, `read_csv`, filtering, `groupby`: <https://pandas.pydata.org/docs/>
+  - begin with [10 minutes to pandas](https://pandas.pydata.org/docs/user_guide/10min.html)
+- **NumPy**: arrays and numerical maths: <https://numpy.org/doc/stable/>
+  - begin with [the absolute basics for beginners](https://numpy.org/doc/stable/user/absolute_beginners.html)
+- **Matplotlib**: plotting: <https://matplotlib.org/stable/>
+  - the [pyplot tutorial](https://matplotlib.org/stable/tutorials/pyplot.html) and the
   [example gallery](https://matplotlib.org/stable/gallery/index.html)
-- **scikit-learn** — machine learning: <https://scikit-learn.org/stable/>
-  — begin with [an introduction to machine learning](https://scikit-learn.org/stable/tutorial/basic/tutorial.html)
+- **scikit-learn**: machine learning: <https://scikit-learn.org/stable/>
+  - begin with [an introduction to machine learning](https://scikit-learn.org/stable/tutorial/basic/tutorial.html)
 
 ## For maintainers
 
@@ -174,7 +184,7 @@ uv run python convert_root_to_csv.py
 
 It applies two cuts:
 
-1. **Fiducial volume** — the Takubo zones in x/y, plates 7–626 in z. This equalises the
+1. **Fiducial volume**: the Takubo zones in x/y, plates 7–626 in z. This equalises the
    generation volumes of the two classes; it keeps 79% of signal and 98% of background.
 2. **Incoming neutrino energy ≥ 200 GeV**, signal only, from the truth files. See
    [ADR 0002](docs/adr/0002-clean-signal-by-incoming-energy.md).
