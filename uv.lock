@@ -7,6 +7,10 @@ resolution-markers = [
     "sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[options]
+exclude-newer = "2026-09-21T23:21:37.032258023Z"
+exclude-newer-span = "P30D"
+
 [[package]]
 name = "anyio"
 version = "4.15.1"

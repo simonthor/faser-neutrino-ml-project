@@ -9,6 +9,10 @@ __pycache__/
 # Jupyter
 .ipynb_checkpoints/
 
+# Solutions to numpy_pandas_intro.ipynb, kept locally only
+numpy_pandas_intro_solutions.ipynb
+make_numpy_pandas_intro.py
+
 .serena/
 docs/adr/
 CONTEXT.md

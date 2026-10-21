@@ -131,13 +131,22 @@ because your prompt gains a `(.venv)` prefix.
 `data/vertices.csv` is about 60 MB and is **not stored in this repository**. 
 Download it from https://cernbox.cern.ch/s/7NNF2rwlMRuJg4y and place it in the `data/` folder.
 
-### 4. Open the notebook
+### 4. Open the notebooks
+
+If you have not used NumPy and pandas before, start with `numpy_pandas_intro.ipynb`. It
+explains both libraries and has exercises, with hints, on the project data:
+
+```bash
+uv run jupyter lab numpy_pandas_intro.ipynb
+```
+
+Then continue with `explore.ipynb`:
 
 ```bash
 uv run jupyter lab explore.ipynb
 ```
 
-If you are familiar with code editors, you can also open `explore.ipynb` in VS Code or PyCharm.
+If you are familiar with code editors, you can also open the notebooks in VS Code or PyCharm.
 
 Run the cells from top to bottom with <kbd>Shift</kbd>+<kbd>Enter</kbd>.
 
