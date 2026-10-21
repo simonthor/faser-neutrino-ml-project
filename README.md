@@ -163,33 +163,45 @@ there is no lepton track and these are the hardest neutrinos to identify.
 
 ### Columns
 
-| column | unit | meaning |
-|---|---|---|
-| `interaction` | — | What really happened. The label. |
-| `weight` | — | How many real interactions this one row represents, for 9.5 fb⁻¹ of LHC data. **Never use as a feature**, see below. |
-| `n_vtrk` | count | Primary tracks at the vertex. |
-| `n_vtrk_100mrad` | count | Primary tracks within 100 mrad of the beam direction. |
-| `n_vtrk_ip5` | count | Primary tracks passing within 5 µm of the vertex. |
-| `n_vtrk_ip5_100mrad` | count | Both of the above at once. |
-| `slope_mean`, `slope_max`, `slope_std` | — | tanθ of the tracks relative to the beam: mean, largest, and spread. |
-| `delta_phi_mean`, `delta_phi_max` | rad | How back-to-back the vertex is. Every track counts equally. |
-| `delta_phi_p_mean`, `delta_phi_p_max` | rad | The same, but each track weighted by its transverse momentum. |
-| `p_max`, `p_sum`, `p_mean` | GeV | Momentum of the tracks: largest, total, average. |
-| `n_tracks_with_momentum` | count | How many tracks had a measurable momentum. |
-| `npl_max` | count | Films crossed by the longest track. |
-| `ip_pos_mean`, `ip_pos_max` | µm | How close the tracks extrapolate back to the vertex. |
-| `n_kinks` | count | Tracks with a sudden change of direction. This is the signature of a particle decaying in flight. |
-| `kink_angle_max` | rad | The largest such change of direction. |
-| `e_em_max`, `e_em_sum` | GeV | Energy of the electromagnetic showers. |
-| `dphi_unit` | rad | Angle between the leading track and the other tracks added together, every track counting equally. Near π means back-to-back. |
-| `dphi_p` | rad | The same, but each other track weighted by its momentum (the larger of `Prec_vtrk` and `Prec_par`). |
-| `r90` | count | Other tracks pointing more than 90° away from the leading track. |
-| `a_sum` | — | Length of the sum of all tracks' unit directions: how much the tracks point the same way. |
-| `pt_sum` | GeV | Length of the sum of energy × direction over all tracks: how well the transverse momentum balances. |
-| `n_vtrk_ippos3um` | count | Tracks passing within 3 µm of the vertex. |
-| `n_vtrk_nseg5` | count | Tracks seen in more than 5 films. |
-| `leadtrk_slope` | — | tan θ of the leading track. |
-| `leadtrk_pt` | GeV | Transverse momentum of the leading track, energy × slope. |
+Every column is built from the primary tracks of the vertex. An empty cell means the
+quantity is undefined for that vertex. pandas reads empty cells as `NaN`. The last
+column says when a cell is empty and how many of the 268 898 rows are affected.
+
+| column | type | unit | meaning | empty when |
+|---|---|---|---|---|
+| `interaction` | string | — | What really happened. The label: `numuCC`, `nueCC`, `nutauCC`, `NC` or `background` (from `nuint_type`). | Never |
+| `weight` | float | — | How many real interactions this one row represents, for 9.5 fb⁻¹ of LHC data. **Never use as a feature**, see below. | Never |
+| `n_vtrk` | int | count | Primary tracks at the vertex. | Never |
+| `n_vtrk_100mrad` | int | count | Primary tracks within 100 mrad of the beam direction. | Never |
+| `n_vtrk_ip5` | int | count | Primary tracks passing within 5 µm of the vertex. | Never |
+| `n_vtrk_ip5_100mrad` | int | count | Primary tracks within 5 µm of the vertex *and* 100 mrad of the beam. | Never |
+| `slope_mean` | float | — | Average tan θ of the tracks relative to the beam. | Never |
+| `slope_max` | float | — | Largest tan θ of the tracks. | Never |
+| `slope_std` | float | — | Spread (standard deviation) of tan θ of the tracks. | Never, since every vertex has at least 2 tracks |
+| `delta_phi_mean` | float | rad | For each track, the azimuthal angle between it and the other tracks added together, every track counting equally. Averaged over the tracks. Near π means back-to-back. | Never |
+| `delta_phi_max` | float | rad | The largest of those angles. | Never |
+| `delta_phi_p_mean` | float | rad | Like `delta_phi_mean`, but each track is weighted by its transverse momentum, so only tracks with a measured momentum take part. | Fewer than 2 tracks have a momentum (4 877 rows, 1.8%) |
+| `delta_phi_p_max` | float | rad | The largest of those angles. | Same as `delta_phi_p_mean` |
+| `p_max` | float | GeV | Largest momentum of the tracks, measured from multiple scattering. | No track has a momentum (568 rows, 0.2%) |
+| `p_sum` | float | GeV | Total momentum of the tracks that have one. | Same as `p_max` |
+| `p_mean` | float | GeV | Average momentum of the tracks that have one. | Same as `p_max` |
+| `n_tracks_with_momentum` | int | count | Tracks with a measured momentum. A track has none if it has fewer than 10 segments, if the fit failed, or if the fit hit its 7 TeV cap. | Never |
+| `npl_max` | int | count | Plates crossed by the longest track. | Never |
+| `ip_pos_mean` | float | µm | Average impact parameter of the tracks: how close they extrapolate back to the vertex. | Never |
+| `ip_pos_max` | float | µm | The largest impact parameter. | Never |
+| `n_kinks` | int | count | Tracks with a sudden change of direction. This is the signature of a particle decaying in flight. | Never |
+| `kink_angle_max` | float | rad | The largest such change of direction. | `n_kinks` is 0 (1 369 rows, 0.5%) |
+| `e_em_max` | float | GeV | Largest energy of the electromagnetic shower attached to a track. | Never in this file. It would be empty if no track had a shower. |
+| `e_em_sum` | float | GeV | Total electromagnetic shower energy. Tracks in the same shower share one `E_em`, so a shared shower is counted once for each of its tracks. | Same as `e_em_max` |
+| `dphi_unit` | float | rad | Angle between the leading track and the other tracks added together, every track counting equally. Near π means back-to-back. | Same as `e_em_max`, because the leading track needs an `E_em` |
+| `dphi_p` | float | rad | The same, but each other track weighted by its momentum (the larger of `Prec_vtrk` and `Prec_par`). | No track other than the leading one has a momentum (2 997 rows, 1.1%) |
+| `r90` | int | count | Other tracks pointing more than 90° away from the leading track. | Same as `dphi_unit` |
+| `a_sum` | float | — | Length of the sum of all tracks' unit directions: how much the tracks point the same way. | Never |
+| `pt_sum` | float | GeV | Length of the sum of `E_em` × direction over all tracks: how well the transverse momentum balances. | Same as `e_em_max` |
+| `n_vtrk_ippos3um` | int | count | Tracks passing within 3 µm of the vertex. | Never |
+| `n_vtrk_nseg5` | int | count | Tracks with more than 5 segments. | Never |
+| `leadtrk_slope` | float | — | tan θ of the leading track. | Same as `dphi_unit` |
+| `leadtrk_pt` | float | GeV | Transverse momentum of the leading track, `E_em` × slope. | Same as `dphi_unit` |
 
 ### Caveats
 
